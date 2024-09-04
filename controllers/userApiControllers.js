@@ -108,18 +108,18 @@ async function forgetPassword(req, res) {
             return res.status(404).json({ status: false, error: 'User not found!' });
         }
         const randomStrings = randomString.generate();
+        const url = `${process.env.FRONTEND_URL}/reset-password/${randomStrings}`;
         let updated = await User.findByIdAndUpdate(user.id, {
-          token: randomStrings,
+         token: randomStrings,
         });
-        
-        const url = `${process.env.FRONTEND_URL}/reset-password/${randomString}`;
         const userName = `${user.name}`; 
+        let htmlString = mail.renderTemplate({ token: url,userName:userName }, "/forget.ejs");
         const mailOptions = {
             from: process.env.APP_EMAIL ,
             to: user.email ,
             subject: "Password Reset" ,
-            text: `Hello ${userName}, We got request for reset password here is Your token : ${randomStrings}.`,
-            // html: htmlString ,
+            text: `Hello ${userName}, We got request for reset password.`,
+            html: htmlString ,
         };
         mail.transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
@@ -136,6 +136,7 @@ async function forgetPassword(req, res) {
 async function resetPassword(req, res) {
     try {
         const { token, password, confirmPassword } = req.body;
+
         let result = token.trim();
         let hash = await global.securePassword(password);
         if (password != confirmPassword) {
@@ -150,7 +151,7 @@ async function resetPassword(req, res) {
             res.status(200).json({ status: true, message: "Password Changed Successfully!" });
         }else{
             return res.status(404).json({ status: false, error: 'Sorry! This link has expired or invalid link . Please request a new password reset link to continue.' });
-        } 
+        }
     } catch (error) {
         console.error('Reset password error:', error);
         res.status(500).json({ error: 'Reset password failed' });
